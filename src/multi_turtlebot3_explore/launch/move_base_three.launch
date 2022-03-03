@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find multi_turtlebot3_explore)/launch/move_base_namespace.launch">
+  <arg name="robot_namespace" value="tb3_0" />
+  </include>
+
+  <include file="$(find multi_turtlebot3_explore)/launch/move_base_namespace.launch">
+  <arg name="robot_namespace" value="tb3_1" />
+  </include>
+
+  <include file="$(find multi_turtlebot3_explore)/launch/move_base_namespace.launch">
+  <arg name="robot_namespace" value="tb3_2" />
+  </include>
+</launch>	

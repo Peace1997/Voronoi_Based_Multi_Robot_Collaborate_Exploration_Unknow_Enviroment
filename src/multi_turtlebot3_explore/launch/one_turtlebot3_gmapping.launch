@@ -1,0 +1,79 @@
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+
+  <!-- set group name of robot -->
+  <arg name="first_tb3"  default="tb3_0"/>
+
+
+  <!--set initial positon of robot -->
+  <arg name="first_tb3_x_pos" default="-3.2"/>
+  <arg name="first_tb3_y_pos" default="0.0"/>
+  <arg name="first_tb3_z_pos" default="0.0"/>
+  <arg name="first_tb3_yaw"   default="0.0"/>
+
+
+  <!--map information-->
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_world.world"/> -->
+    <arg name="world_name" value="$(find multi_turtlebot3_explore)/worlds/simple_env_1.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+  
+  <!--muliti agent-->
+  <group ns = "$(arg first_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg first_tb3)" />
+    </node>
+
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model $(arg first_tb3) -x $(arg first_tb3_x_pos) -y $(arg first_tb3_y_pos) -z $(arg first_tb3_z_pos)  -Y $(arg first_tb3_yaw) -param robot_description" />
+    
+    <include file="$(find multi_turtlebot3_explore)/launch/gmapping.launch">
+      <arg name="robot_namespace" value="$(arg first_tb3)" /> 
+    </include> 
+  </group>
+
+
+  <node pkg="tf" type="static_transform_publisher" name="map_to_tb3_0" args="0 0 0 0 0 0 map $(arg first_tb3)/map 100" />
+
+  <!-- Map megring (know inital position case)-->
+  <group ns="tb3_0/map_merge">
+    <param name="init_pose_x" value="-3.2"/>
+    <param name="init_pose_y" value="-1.5"/>
+    <param name="init_pose_z" value="0.0"/>
+    <param name="init_pose_yaw" value="0.0"/>
+  </group>
+
+  <group ns="map_merge">
+    <node pkg="multirobot_map_merge" type="map_merge" respawn="false" name="map_merge" output="screen">
+        <param name="robot_map_topic" value="map"/>
+        <param name="robot_namespace" value=""/>
+        <param name="merged_map_topic" value="map"/>
+        <param name="world_frame" value="map"/>
+        <param name="known_init_poses" value="true"/>
+        <param name="merging_rate" value="0.5"/>
+        <param name="discovery_rate" value="0.05"/>
+        <param name="estimation_rate" value="0.1"/>
+        <param name="estimation_confidence" value="1.0"/>
+    </node>
+  </group>
+
+
+  <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro'" />
+  <!-- Loads robot_description to parameter server from URDF file-->
+  <param name="robot_description" command="$(arg urdf_file)" />
+
+  <!-- RVIZ configured for tb3_0/1  three_tb3_one_map_threegoals.rviz -->
+  <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(find multi_turtlebot3_explore)/rviz/multi_turtlebot3_slam_2.rviz"/>
+
+  <include file="$(find multi_turtlebot3_explore)/launch/move_base_three.launch" />
+
+
+</launch>
